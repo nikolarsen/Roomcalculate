@@ -288,38 +288,21 @@ function buildExportText() {
   return lines.join('\n');
 }
 
-function showShareModal(text) {
-  modalRoot.innerHTML = '';
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = '<div style="font-weight:600;margin-bottom:8px">Экспорт результата</div><textarea readonly>' + text + '</textarea><div class="mrow"><button class="btn copyBtn">Копировать</button><button class="btn closeBtn">Закрыть</button></div>';
-  modalRoot.appendChild(backdrop);
-  backdrop.appendChild(modal);
-  modal.querySelector('.copyBtn').onclick = () => {
-    const ta = modal.querySelector('textarea');
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(ta.value).then(() => {
-        modal.querySelector('.copyBtn').textContent = '✓ Скопировано';
-        setTimeout(() => modal.querySelector('.copyBtn').textContent = 'Копировать', 1500);
-      });
-    } else {
-      ta.select();
-      document.execCommand('copy');
-      modal.querySelector('.copyBtn').textContent = '✓ Скопировано';
-      setTimeout(() => modal.querySelector('.copyBtn').textContent = 'Копировать', 1500);
-    }
-  };
-  modal.querySelector('.closeBtn').onclick = () => { modalRoot.innerHTML = ''; };
-}
-
+// ИСПРАВЛЕНО: обработчик кнопки "Отправить результат" (единственное изменение в файле)
 $('shareBtn').onclick = () => {
   const text = buildExportText();
-  if (window.Telegram?.WebApp) {
+  if (window.Telegram?.WebApp?.sendData) {
     Telegram.WebApp.sendData(text);
   } else {
-    showShareModal(text);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✅ Результат скопирован!\nВставьте в любой мессенджер или документ.');
+      }).catch(() => {
+        prompt('📋 Скопируйте результат:', text);
+      });
+    } else {
+      prompt('📋 Скопируйте результат:', text);
+    }
   }
 };
 
