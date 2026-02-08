@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+:root{
+  --bg:#000000;
+  --card:#0f1724;
+  --muted:#9aa6b2;
+  --accent:#4fb3ff;
+  --text:#e6eef6;
+  --danger:#ff7b7b;
+}
+
+html,body{
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
+  box-sizing:border-box;
+}
+*,*:before,*:after{box-sizing:inherit;}
+
+.topbar{
+  position:fixed;
+  top:0;left:0;
+  width:100vw;
+  display:flex;
+  flex-direction:column;
+  background:#000;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  z-index:1000;
+}
+
+.calculator{
+  padding:8px 12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+
+.calc-inputs{
+  display:flex;
+  gap:4px;
+  margin-bottom:6px;
+  align-items:center;
+}
+
+.calc-input{
+  flex:1;
+  padding:8px;
+  border-radius:7px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  font-size:16px;
+  text-align:center;
+}
+
+.calc-result{
+  background:rgba(79,179,255,.1);
+  border-color:var(--accent);
+}
+
+.calc-symbol{
+  font-size:18px;
+  font-weight:600;
+  color:var(--accent);
+  min-width:24px;
+  text-align:center;
+}
+
+.calc-operators{
+  display:flex;
+  gap:6px;
+}
+
+.calc-op{
+  flex:1;
+  padding:8px;
+  border:1px solid rgba(255,255,255,.12);
+  background:transparent;
+  color:var(--accent);
+  border-radius:7px;
+  font-size:16px;
+  font-weight:600;
+}
+
+.calc-op.active{
+  background:var(--accent);
+  color:#000;
+}
+
+.calc-save{
+  background:transparent;
+  border:1px solid rgba(255,255,255,.12);
+  color:#4fb84f;
+  padding:8px 12px;
+  border-radius:7px;
+  font-size:18px;
+}
+
+.buttons-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding:8px 12px;
+}
+
+.btn{
+  border:1px solid rgba(255,255,255,.12);
+  background:transparent;
+  color:var(--accent);
+  border-radius:8px;
+  padding:7px 10px;
+  font-size:13px;
+}
+
+.container{
+  margin-top:130px;
+  padding:14px;
+  width:100vw;
+}
+
+.rooms{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.room{
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:12px;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+label{
+  font-size:12px;
+  color:var(--muted);
+}
+
+input{
+  width:100%;
+  padding:7px;
+  border-radius:7px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.03);
+  color:var(--text);
+  font-size:16px;
+}
+
+.row{display:flex;gap:8px;align-items:center;}
+.row.inputs{align-items:flex-end;}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  flex:1;
+}
+
+.resline{
+  display:flex;
+  justify-content:space-between;
+  background:rgba(255,255,255,.04);
+  padding:6px 8px;
+  border-radius:7px;
+  cursor:pointer;
+  transition:background .2s;
+}
+
+.resline:hover{
+  background:rgba(79,179,255,.1);
+}
+
+.resline .value{
+  user-select:none;
+}
+
+.openings{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.opening{
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:6px;
+}
+
+.remove{
+  background:none;
+  border:0;
+  color:var(--danger);
+  font-size:18px;
+}
+
+.summary{
+  margin-top:24px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:#0b1220;
+}
+
+.calc-history{
+  margin-top:24px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:#0b1220;
+  display:none;
+}
+
+.calc-history.visible{
+  display:block;
+}
+
+.history-item{
+  padding:6px 8px;
+  background:rgba(255,255,255,.04);
+  border-radius:7px;
+  margin-bottom:6px;
+  font-size:14px;
+}
+
+.footer{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.modal-backdrop{
+  position:fixed; left:0; top:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:2000;
+}
+.modal{
+  width:92%; max-width:720px; background:#071020; border:1px solid rgba(255,255,255,0.06);
+  padding:12px; border-radius:10px; color:var(--text);
+}
+.modal textarea{
+  width:100%; height:240px; resize:vertical; padding:8px; border-radius:8px;
+  border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); color:var(--text);
+}
+.modal .mrow{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.modal .btn{padding:8px 12px;}
+.mnote{font-size:13px;color:var(--muted);margin-left:8px;}
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="calculator">
+    <div class="calc-inputs">
+      <input id="calcNum1" class="calc-input" type="text" inputmode="decimal" placeholder="0">
+      <span class="calc-symbol" id="opSymbol">×</span>
+      <input id="calcNum2" class="calc-input" type="text" inputmode="decimal" placeholder="0">
+      <span class="calc-symbol">=</span>
+      <input id="calcResult" class="calc-input calc-result" type="text" readonly placeholder="0">
+    </div>
+    <div class="calc-operators">
+      <button class="calc-op active" data-op="*">×</button>
+      <button class="calc-op" data-op="+">+</button>
+      <button class="calc-op" data-op="-">−</button>
+      <button class="calc-op" data-op="/">÷</button>
+      <button class="calc-save" id="saveCalc">✓</button>
+    </div>
+  </div>
+  
+  <div class="buttons-row">
+    <button id="addRoom" class="btn">Добавить комнату</button>
+    <button id="shareBtn" class="btn">Отправить результат</button>
+    <button id="clearAll" class="btn">Очистить</button>
+  </div>
+</div>
+
+<div class="container">
+  <div id="rooms" class="rooms"></div>
+
+  <div class="summary">
+    <div style="font-weight:600">ИТОГО ВО ВСЕХ КОМНАТАХ</div>
+    <div class="resline" data-value="tArea"><div>Общая площадь</div><div class="value" id="tArea">—</div></div>
+    <div class="resline" data-value="tPer"><div>Общий периметр</div><div class="value" id="tPer">—</div></div>
+    <div class="resline" data-value="tWallsGross"><div>Стены (без вычета проёмов)</div><div class="value" id="tWallsGross">—</div></div>
+    <div class="resline" data-value="tOpenings"><div>Сумма проёмов</div><div class="value" id="tOpenings">—</div></div>
+    <div class="resline" data-value="tWallsNet"><div>Стены (минус проёмы)</div><div class="value" id="tWallsNet">—</div></div>
+    <div class="resline" data-value="tVol"><div>Общий объём</div><div class="value" id="tVol">—</div></div>
+  </div>
+
+  <div class="calc-history" id="calcHistory">
+    <div style="font-weight:600;margin-bottom:8px">ИСТОРИЯ РАСЧЁТОВ</div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+// Telegram WebApp инициализация
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+  Telegram.WebApp.setHeaderColor('#000000');
+  Telegram.WebApp.setBackgroundColor('#000000');
+}
+
+const $ = id => document.getElementById(id);
+const roomsEl = $('rooms');
+const modalRoot = $('modalRoot');
+const calcHistoryEl = $('calcHistory');
+const historyListEl = $('historyList');
+
+let calcHistoryData = [];
+
+const calcNum1 = $('calcNum1');
+const calcNum2 = $('calcNum2');
+const calcResult = $('calcResult');
+const opSymbol = $('opSymbol');
+const saveCalcBtn = $('saveCalc');
+let currentOp = '*';
+
+const opSymbols = {
+  '*': '×',
+  '+': '+',
+  '-': '−',
+  '/': '÷'
+};
+
+document.querySelectorAll('.calc-op').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.calc-op').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentOp = btn.dataset.op;
+    opSymbol.textContent = opSymbols[currentOp];
+    calcUpdate();
+  };
+});
+
+function calcUpdate(){
+  const v1 = calcNum1.value.trim();
+  const v2 = calcNum2.value.trim();
+  
+  if(!v1 || !v2){
+    calcResult.value = '';
+    return;
+  }
+  
+  const n1 = parseFloat(String(v1).replace(',','.'));
+  const n2 = parseFloat(String(v2).replace(',','.'));
+  
+  if(!isFinite(n1) || !isFinite(n2)){
+    calcResult.value = '';
+    return;
+  }
+  
+  let res;
+  if(currentOp === '+') res = n1 + n2;
+  else if(currentOp === '-') res = n1 - n2;
+  else if(currentOp === '*') res = n1 * n2;
+  else if(currentOp === '/') res = n2 !== 0 ? n1 / n2 : NaN;
+  
+  calcResult.value = isFinite(res) ? (Math.round(res*10000)/10000).toString().replace('.',',') : '';
+}
+
+calcNum1.oninput = calcUpdate;
+calcNum2.oninput = calcUpdate;
+
+saveCalcBtn.onclick = () => {
+  const v1 = calcNum1.value.trim();
+  const v2 = calcNum2.value.trim();
+  const result = calcResult.value.trim();
+  
+  if(!v1 || !v2 || !result){
+    return;
+  }
+  
+  const expression = v1 + ' ' + opSymbol.textContent + ' ' + v2 + ' = ' + result;
+  calcHistoryData.push(expression);
+  
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  item.textContent = expression;
+  historyListEl.appendChild(item);
+  
+  calcHistoryEl.classList.add('visible');
+  
+  saveCalcBtn.textContent = '✓';
+  saveCalcBtn.style.color = '#4fb84f';
+  setTimeout(() => {
+    saveCalcBtn.textContent = '✓';
+    saveCalcBtn.style.color = '';
+  }, 300);
+};
+
+function clearCalculator(){
+  calcNum1.value = '';
+  calcNum2.value = '';
+  calcResult.value = '';
+}
+
+function makeResultClickable(el){
+  el.onclick = () => {
+    const val = el.textContent.trim();
+    if(val && val !== '—'){
+      calcNum1.value = val;
+      calcNum1.focus();
+      calcUpdate();
+    }
+  };
+}
+
+document.querySelectorAll('.summary .resline .value').forEach(makeResultClickable);
+
+function num(v){ const n = parseFloat(String(v||'').replace(',','.')); return isFinite(n)?n:NaN; }
+function fmt(v){ return isFinite(v)?(Math.round(v*10000)/10000).toString().replace('.',','):'—' }
+
+function addRoom(){
+  const r=document.createElement('div');
+  r.className='room';
+  r.innerHTML=\`
+    <div class="row">
+      <input class="name" placeholder="Название комнаты">
+      <button class="remove" title="Удалить комнату">×</button>
+    </div>
+
+    <div class="row inputs">
+      <div class="field">
+        <label>Ширина (м)</label>
+        <input class="w" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Длина (м)</label>
+        <input class="l" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Высота (м)</label>
+        <input class="h" inputmode="decimal">
+      </div>
+    </div>
+
+    <div>
+      <div class="row">
+        <label>Проёмы</label>
+        <button class="btn addOpen">Добавить</button>
+        <div style="margin-left:auto;color:var(--muted)">Сумма: <span class="os">—</span></div>
+      </div>
+      <div class="openings"></div>
+    </div>
+
+    <div class="resline"><div>Площадь</div><div class="value ra">—</div></div>
+    <div class="resline"><div>Периметр</div><div class="value rp">—</div></div>
+    <div class="resline"><div>Стены (без вычета проёмов)</div><div class="value wg">—</div></div>
+    <div class="resline"><div>Проёмы</div><div class="value op">—</div></div>
+    <div class="resline"><div>Стены (минус проёмы)</div><div class="value wn">—</div></div>
+    <div class="resline"><div>Объём</div><div class="value rv">—</div></div>
+  \`;
+  roomsEl.appendChild(r);
+
+  const w=r.querySelector('.w'), l=r.querySelector('.l'), h=r.querySelector('.h');
+  const ops=r.querySelector('.openings');
+  const removeBtn = r.querySelector('.remove');
+  const addOpenBtn = r.querySelector('.addOpen');
+
+  r.querySelectorAll('.resline .value').forEach(makeResultClickable);
+
+  function calc(){
+    const W=num(w.value), L=num(l.value), H=num(h.value);
+    const A = (isFinite(W) && isFinite(L)) ? W*L : NaN;
+    const P = (isFinite(W) && isFinite(L)) ? 2*(W+L) : NaN;
+    let oSum = 0;
+    ops.querySelectorAll('.opening').forEach(o => {
+      const ow = num(o.querySelector('.ow').value);
+      const oh = num(o.querySelector('.oh').value);
+      if(isFinite(ow) && isFinite(oh)) oSum += ow*oh;
+    });
+    const wg = (isFinite(P) && isFinite(H)) ? P*H : NaN;
+    const wn = isFinite(wg) ? Math.max(0, wg - oSum) : NaN;
+    const V = (isFinite(A) && isFinite(H)) ? A*H : NaN;
+
+    r.querySelector('.ra').textContent = fmt(A);
+    r.querySelector('.rp').textContent = fmt(P);
+    r.querySelector('.wg').textContent = fmt(wg);
+    r.querySelector('.op').textContent = oSum ? fmt(oSum) : '—';
+    r.querySelector('.os').textContent = oSum ? fmt(oSum) : '—';
+    r.querySelector('.wn').textContent = fmt(wn);
+    r.querySelector('.rv').textContent = fmt(V);
+    calcTotals();
+  }
+
+  addOpenBtn.onclick = () => {
+    const o = document.createElement('div');
+    o.className = 'opening';
+    o.innerHTML = \`
+      <input class="ow" placeholder="ширина (м)" inputmode="decimal">
+      <input class="oh" placeholder="высота (м)" inputmode="decimal">
+      <button class="remove" title="Удалить">×</button>\`;
+    ops.appendChild(o);
+    o.querySelectorAll('input').forEach(i => i.oninput = calc);
+    o.querySelector('.remove').onclick = () => { o.remove(); calc(); };
+    calc();
+  };
+
+  [w,l,h].forEach(i => i.oninput = calc);
+  removeBtn.onclick = () => { r.remove(); calcTotals(); };
+
+  calc();
+}
+
+function calcTotals(){
+  let A=0,P=0,WG=0,OP=0,WN=0,V=0;
+  document.querySelectorAll('.room').forEach(r => {
+    const a = num(r.querySelector('.ra').textContent);
+    const p = num(r.querySelector('.rp').textContent);
+    const wg = num(r.querySelector('.wg').textContent);
+    const op = num(r.querySelector('.op').textContent);
+    const wn = num(r.querySelector('.wn').textContent);
+    const v = num(r.querySelector('.rv').textContent);
+    if(isFinite(a)) A += a;
+    if(isFinite(p)) P += p;
+    if(isFinite(wg)) WG += wg;
+    if(isFinite(op)) OP += op;
+    if(isFinite(wn)) WN += wn;
+    if(isFinite(v)) V += v;
+  });
+  $('tArea').textContent = fmt(A);
+  $('tPer').textContent = fmt(P);
+  $('tWallsGross').textContent = fmt(WG);
+  $('tOpenings').textContent = fmt(OP);
+  $('tWallsNet').textContent = fmt(WN);
+  $('tVol').textContent = fmt(V);
+}
+
+function buildExportText(){
+  const lines = [];
+  const rooms = Array.from(document.querySelectorAll('.room'));
+  rooms.forEach((r, idx) => {
+    const name = r.querySelector('.name').value.trim() || ('Комната ' + (idx+1));
+    lines.push(name + ':');
+    lines.push('  Ширина: ' + (r.querySelector('.w').value || '—') + ' м');
+    lines.push('  Длина: ' + (r.querySelector('.l').value || '—') + ' м');
+    lines.push('  Высота: ' + (r.querySelector('.h').value || '—') + ' м');
+    lines.push('  Площадь: ' + r.querySelector('.ra').textContent + ' м²');
+    lines.push('  Периметр: ' + r.querySelector('.rp').textContent + ' м');
+    lines.push('  Пл. стен (без вычета проёмов): ' + r.querySelector('.wg').textContent + ' м²');
+    lines.push('  Проёмы (сумма): ' + r.querySelector('.op').textContent + ' м²');
+    lines.push('  Пл. стен (минус проёмы): ' + r.querySelector('.wn').textContent + ' м²');
+    lines.push('  Объём: ' + r.querySelector('.rv').textContent + ' м³');
+    const opens = Array.from(r.querySelectorAll('.opening'));
+    if(opens.length){
+      lines.push('  Список проёмов:');
+      opens.forEach((o, i) => {
+        lines.push('    ' + (i+1) + ') ' + (o.querySelector('.ow').value || '—') + ' × ' + (o.querySelector('.oh').value || '—') + ' м');
+      });
+    }
+    lines.push('');
+  });
+  lines.push('ИТОГО:');
+  lines.push('  Общая площадь: ' + $('tArea').textContent + ' м²');
+  lines.push('  Общий периметр: ' + $('tPer').textContent + ' м');
+  lines.push('  Пл. стен (без вычета проёмов): ' + $('tWallsGross').textContent + ' м²');
+  lines.push('  Сумма проёмов: ' + $('tOpenings').textContent + ' м²');
+  lines.push('  Пл. стен (минус проёмы): ' + $('tWallsNet').textContent + ' м²');
+  lines.push('  Общий объём: ' + $('tVol').textContent + ' м³');
+  
+  if(calcHistoryData.length > 0){
+    lines.push('');
+    lines.push('ИСТОРИЯ РАСЧЁТОВ:');
+    calcHistoryData.forEach((expr, i) => {
+      lines.push('  ' + (i+1) + ') ' + expr);
+    });
+  }
+  
+  return lines.join('\n');
+}
+
+function showShareModal(text){
+  modalRoot.innerHTML = '';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = \`
+    <div style="font-weight:600;margin-bottom:8px;">Экспорт результата</div>
+    <textarea readonly></textarea>
+    <div class="mrow">
+      <button class="btn copyBtn">Копировать</button>
+      <button class="btn closeBtn">Закрыть</button>
+    </div>
+  \`;
+  modal.querySelector('textarea').value = text;
+  modalRoot.appendChild(backdrop);
+  backdrop.appendChild(modal);
+
+  const copyBtn = modal.querySelector('.copyBtn');
+  const closeBtn = modal.querySelector('.closeBtn');
+  copyBtn.onclick = () => {
+    const ta = modal.querySelector('textarea');
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(ta.value).then(()=> {
+        copyBtn.textContent = 'Скопировано ✓';
+        setTimeout(()=> copyBtn.textContent = 'Копировать', 1500);
+      });
+    } else {
+      ta.select();
+      document.execCommand('copy');
+      copyBtn.textContent = 'Скопировано ✓';
+      setTimeout(()=> copyBtn.textContent = 'Копировать', 1500);
+    }
+  };
+  closeBtn.onclick = () => { modalRoot.innerHTML = ''; };
+}
+
+// КРИТИЧЕСКИ ВАЖНО: обработчик кнопки "Отправить результат"
+$('shareBtn').onclick = () => {
+  const text = buildExportText();
+  
+  // Если запущено в Telegram Web App — отправляем результат в чат
+  if (window.Telegram?.WebApp) {
+    Telegram.WebApp.sendData(text);
+    // Telegram автоматически закроет окно и покажет результат в чате
+  } 
+  // Для отладки в браузере — показываем модалку
+  else {
+    showShareModal(text);
+  }
+};
+
+$('addRoom').onclick = () => addRoom();
+$('clearAll').onclick = () => { 
+  roomsEl.innerHTML = ''; 
+  calcTotals(); 
+  clearCalculator();
+  calcHistoryData = [];
+  historyListEl.innerHTML = '';
+  calcHistoryEl.classList.remove('visible');
+};
+
+// Авто-добавление первой комнаты при загрузке
+addRoom();
+</script>
+</body>
+</html>
+
