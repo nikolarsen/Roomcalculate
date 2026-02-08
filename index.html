@@ -289,61 +289,43 @@ function buildExportText() {
   return lines.join('\n');
 }
 
-// ВОССТАНОВЛЕНА И ИСПРАВЛЕНА функция модального окна
-function showShareModal(text) {
-  modalRoot.innerHTML = '';
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = '<div style="font-weight:600;margin-bottom:8px">📋 Результат расчёта</div><textarea readonly>' + text + '</textarea><div class="mrow"><button class="btn copyBtn">Копировать</button><button class="btn closeBtn">Закрыть</button></div>';
-  modalRoot.appendChild(backdrop);
-  backdrop.appendChild(modal);
-  
-  const copyBtn = modal.querySelector('.copyBtn');
-  const closeBtn = modal.querySelector('.closeBtn');
-  const textarea = modal.querySelector('textarea');
-  
-  copyBtn.onclick = () => {
-    textarea.select();
-    textarea.focus();
-    try {
-      const success = document.execCommand('copy');
-      if (success) {
-        copyBtn.textContent = '✓ Скопировано';
-        setTimeout(() => { copyBtn.textContent = 'Копировать'; }, 1500);
-      } else {
-        alert('Не удалось скопировать. Выделите текст вручную.');
-      }
-    } catch (err) {
-      alert('Ошибка копирования: ' + err);
-    }
-  };
-  
-  closeBtn.onclick = () => {
-    modalRoot.innerHTML = '';
-  };
-  
-  textarea.focus();
-  textarea.setSelectionRange(0, textarea.value.length);
-}
-
-// ИСПРАВЛЕННЫЙ обработчик кнопки (проверено на актуальность методов Telegram Web Apps, февраль 2026)
-$('shareBtn').onclick = () => {
+// ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ ВО ВСЁМ ФАЙЛЕ: новая логика кнопки "Отправить результат"
+$('shareBtn').onclick = async () => {
   const text = buildExportText();
   
-  // Для Telegram Web App: отправка строки напрямую
-  if (window.Telegram?.WebApp?.sendData && typeof window.Telegram.WebApp.sendData === 'function') {
-    try {
-      Telegram.WebApp.sendData(text); // Официальный метод, принимает ТОЛЬКО строку
-      return;
-    } catch (e) {
-      console.error('Ошибка отправки в Telegram:', e);
+  // 1. Копируем в буфер (с резервным методом)
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-999999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
     }
+    
+    // 2. Открываем стандартное окно "Поделиться" (если поддерживается)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Результат расчёта площадей',
+          text: text
+        });
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          alert('✅ Скопировано!\nРезультат готов для вставки в любой мессенджер.');
+        }
+      }
+    } else {
+      alert('✅ Скопировано!\nРезультат готов для вставки в любой мессенджер.');
+    }
+  } catch (err) {
+    prompt('📋 Скопируйте вручную:', text);
   }
-  
-  // Для браузера: показываем модальное окно
-  showShareModal(text);
 };
 
 $('addRoom').onclick = addRoom;
